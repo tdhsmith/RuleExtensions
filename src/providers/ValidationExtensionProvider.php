@@ -19,6 +19,14 @@ class ValidatorExtensionProvider extends ServiceProvider
     static $carbonDateMessage           = "The :attribute field could not be parsed as a Carbon datetime.";
     const REQUIRED_XOR_FAILURE_MESSAGE = 'Exactly one of the :attribute or :values fields must be present.';
 
+    // TODO: ok I'm not sure how I'm gonna handle this in the "provider" mode, but
+    // I'd like to have a work-saving process here where complicated V processes
+    // can save their output for people to read later (assuming validation is
+    // successful). Maybe this is bad practice, but as long as the checks are working
+    // that way, we might as well not repeat ourselves with parsing/file ops/etc.
+    public $processedEntities = [];
+    // ALTERNATIVELY, TODO: think of some other way to not be foolish.
+
     /**
      * Bootstrap the service and extend the validator with any custom rules we want.
      *
@@ -59,6 +67,10 @@ class ValidatorExtensionProvider extends ServiceProvider
             $this->setup($validator);
             return $this->validateUnique($attribute, $value, $parameters);
         });
+
+        Validator::extend('dataURL', function ($attribute, $value, $parameters, $validator) {
+            return $this->validateDataURL($attribute, $value, $parameters);
+        });
     }
     /**
      * Register the service provider.
@@ -69,6 +81,45 @@ class ValidatorExtensionProvider extends ServiceProvider
      */
     public function register() {}
 
+    protected function validateDataURL($attribute, $value, $parameters)
+    {
+        try {
+            $dataURL = new DataURL($value);
+        } catch (InvalidArgumentException $e) {
+            return false;
+        }
+
+        if (count($parameters) > 0) {
+            if (strpos($parameters[0], '/') === false) {
+                // if the type arg doesn't have a slash, check that it equals
+                // either the type category or the subtype
+                if (!in_array($parameters[0], $dataURL->mediatype)) {
+                    return false;
+                }
+            } else {
+                // otherwise compare it to the whole mediatype string
+                if ($parameters[0] !== $dataURL->parameters['mediatype']) {
+                    return false;
+                }
+            }
+        }
+
+        if (count($parameters) > 1) {
+            // TODO: allow checks for other parameters?
+            // if the rule args mention base64 and that's not in the URL's
+            // parameters (or it's not set to true, though really is that
+            // valid to the scheme? RFC probably indicates no), reject it
+            if ($parameters[1] === 'base64' && (!in_array('base64', $dataURL->parameters) || $dataURL->parameters['base64'] !== true)) {
+                return false;
+            }
+        }
+
+        // TODO: see definition note
+        // TODO: what about multiple entities for one attribute
+        $this->processedEntities[$attribute] = $dataURL;
+
+        return true;
+    }
 
     protected function validateRequiredXOR($attribute, $value, $parameters)
     {
