@@ -29,18 +29,47 @@ class DataURL
         return new self($URL);
     }
 
+    public static function fromData($data, $type, $settings = [])
+    {
+        $instance = new self();
+        $instance->data = $data;
+
+        if (is_null($type)) {
+            $settings = $settings + self::DEFAULT_PARAMETERS;
+        } else {
+            $settings = $settings + ['mediatype' => $type];
+        }
+        $instance->parameters = $settings;
+        $instance->parseMediatypeFromParameters();
+
+        return $instance;
+    }
+
     protected function parseInternal()
     {
         if (substr($this->URL, 0, 5) !== 'data:') {
             throw new InvalidArgumentException('Data URL must start with the string "data:"');
         }
-
-        $content = explode(',', $value);
+        $content = explode(',', substr($this->URL, 5));
         if (count($content) !== 2) {
             throw new InvalidArgumentException('Could not separate data from paramaters; data URL should contain exactly 1 comma');
         }
 
-        $this->parameters = collect(explode(';', $content[0]))->transform(function ($item, $index) {
+        $this->parseParameterString($content[0]);
+        $this->parseMediatypeFromParameters();
+        $this->parseDataString($content[1]);
+
+        return $this;
+    }
+
+    protected function parseMediatypeFromParameters()
+    {
+        $this->mediatype = explode('/', $this->parameters['mediatype']);
+    }
+
+    protected function parseParameterString($paramString)
+    {
+        $this->parameters = collect(explode(';', $paramString))->transform(function ($item, $index) {
             if ($index === 0) {
                 // the first entry is always the media type
                 if ($item === '') {
@@ -48,7 +77,7 @@ class DataURL
                     return static::DEFAULT_PARAMETERS;
                 }
                 if (strpos($item, '/') === false) {
-                    throw new InvalidArgumentException('Media types must contain a type & subtype separated by a slash "/"')
+                    throw new InvalidArgumentException('Media types must contain a type & subtype separated by a slash "/"');
                 }
                 return ['mediatype' => $item];
             }
@@ -62,17 +91,41 @@ class DataURL
             }
             list($att, $val) = explode('=', $item);
             return [$att => $val];
-        })->collapse();
+        })->collapse(); // TODO: toArray
+    }
 
-        $this->mediatype = explode('/', $this->parameters['mediatype']);
-
+    protected function parseDataString($dataString)
+    {
         if (array_key_exists('base64', $this->parameters) && $this->parameters['base64'] === true) {
-            $this->data = $this->base64url_decode($content[1]);
+            $this->data = $this->base64url_decode($dataString);
         } else {
-            $this->data = $content[1];
+            $this->data = $dataString;
+        }
+    }
+
+    public function deparseInternal()
+    {
+        if (!is_string($this->data) || !is_array($this->parameters)) {
+            throw new InvalidArgumentException('Data is not string or parameters are not array');
         }
 
-        $this->parsed = true;
+        $UrlString = 'data:' . $this->parameters['mediatype'];
+
+        $base64 = false;
+        foreach($this->parameters as $attribute => $value) {
+            if ($attribute === 'base64') {
+                $base64 = true;
+            } elseif ($attribute === 'mediatype') {
+                continue;
+            }
+            $UrlString = $UrlString . ';' . $attribute . '=' . $value;
+        }
+        if ($base64) {
+            $this->URL = $UrlString . ';base64,' . $this->base64_encode($this->data);
+        } else {
+            $this->URL = $UrlString . ',' . $this->data;
+        }
+
         return $this;
     }
 
@@ -86,5 +139,4 @@ class DataURL
         // NOTE: We don't use padding here. Maybe in the future that should be an option?
         return rtrim(strtr(base64_encode($plaintext), '+/', '-_'), '=');
     }
-
 }
