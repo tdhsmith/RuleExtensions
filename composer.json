@@ -1,0 +1,12 @@
+{
+    "name": "tdhsmith/rule-extensions",
+    "description": "Collection of additional validation rules for Laravel",
+    "license": "MIT",
+    "authors": [
+        {
+        "name": "tdhsmith",
+            "email": "contact@tdhsmith.com"
+        }
+    ],
+    "require": {}
+}
