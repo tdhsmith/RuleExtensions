@@ -1,5 +1,5 @@
 <?php
-namespace tdhsmith\RuleExtensions;
+namespace tdhsmith\RuleExtensions\Support;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;

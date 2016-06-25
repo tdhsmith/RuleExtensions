@@ -1,5 +1,5 @@
 <?php
-namespace tdhsmith\RuleExtensions;
+namespace tdhsmith\RuleExtensions\Providers;
 
 use Illuminate\Contracts\Validation\Validator as ValidatorContract;
 use Illuminate\Support\Arr;
@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use Validator;
+
+use tdhsmith\RuleExtensions\Support\DataURL;
 
 class ValidatorExtensionProvider extends ServiceProvider
 {
