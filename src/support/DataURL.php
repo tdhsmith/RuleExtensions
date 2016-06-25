@@ -41,6 +41,7 @@ class DataURL
         }
         $instance->parameters = $settings;
         $instance->parseMediatypeFromParameters();
+        $instance->getURL(); // triggers the deparser
 
         return $instance;
     }
@@ -103,7 +104,7 @@ class DataURL
         }
     }
 
-    public function deparseInternal()
+    protected function deparseInternal()
     {
         if (!is_string($this->data) || !is_array($this->parameters)) {
             throw new InvalidArgumentException('Data is not string or parameters are not array');
@@ -138,5 +139,39 @@ class DataURL
     {
         // NOTE: We don't use padding here. Maybe in the future that should be an option?
         return rtrim(strtr(base64_encode($plaintext), '+/', '-_'), '=');
+    }
+
+    public function __toString()
+    {
+        return $this->getURL();
+    }
+
+    protected function dataAndParametersExist()
+    {
+        return is_string($this->data) && is_array($this->parameters);
+    }
+
+    public function getURL()
+    {
+        if (!is_string($this->URL)) {
+            if ($this->dataAndParametersExist()) {
+                $this->deparseInternal();
+            } else {
+                return false;
+            }
+        }
+        return $this->URL;
+    }
+
+    public function getData()
+    {
+        if (!$this->dataAndParametersExist()) {
+            if (is_string($this->URL)) {
+                $this->parseInternal();
+            } else {
+                return false;
+            }
+        }
+        return $this->data;
     }
 }
