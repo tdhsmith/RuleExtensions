@@ -1,5 +1,6 @@
 <?php
-namespace tdhsmith\validation-extensions;
+namespace tdhsmith\RuleExtensions;
+
 use Illuminate\Contracts\Validation\Validator as ValidatorContract;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -15,7 +16,7 @@ class ValidatorExtensionProvider extends ServiceProvider
     static $requiredOrEmptyArrayMessage = "The :attribute field is required.";
     static $carbonDateMessage           = "The :attribute field could not be parsed as a Carbon datetime.";
     const REQUIRED_XOR_FAILURE_MESSAGE = 'Exactly one of the :attribute or :values fields must be present.';
-    
+
     /**
      * Bootstrap the service and extend the validator with any custom rules we want.
      *
@@ -43,14 +44,14 @@ class ValidatorExtensionProvider extends ServiceProvider
             }
             return true;
         }, self::$carbonDateMessage);
-        
+
         Validator::extendImplicit('required_xor', function ($attribute, $value, $parameters, $validator) {
             // To examine values of attributes other than the one this rule applied to
             // we need the getValue function, which requires data and files arrays.
             $this->setup($validator);
             return $this->validateRequiredXOR($attribute, $value, $parameters);
         }, self::REQUIRED_XOR_FAILURE_MESSAGE);
-        
+
         // An improved version of unique that ignores entries with the id sent in the data
         Validator::extend('dynamicUnique', function ($attribute, $value, $parameters, $validator) {
             $this->setup($validator);
@@ -65,19 +66,19 @@ class ValidatorExtensionProvider extends ServiceProvider
      * @return void
      */
     public function register() {}
-    
-    
+
+
     protected function validateRequiredXOR($attribute, $value, $parameters)
     {
         $this->requireParameterCount(1, $parameters, 'required_xor');
-        
+
         if ($this->validateRequired($attribute, $value)) {
             return !$this->validateRequired($parameters[0], $this->getValue($parameters[0]));
         } else {
             return $this->validateRequired($parameters[0], $this->getValue($parameters[0]));
         }
     }
-    
+
     // The following are all functions copied from the Laravel 5.2 standard Validator.
     // Since they are all protected, we have to recreate them to use them in this
     // service provider (or do weird inheritance trickery).
@@ -116,12 +117,12 @@ class ValidatorExtensionProvider extends ServiceProvider
             return $value;
         }
     }
-    
+
     protected function validateUnique($attribute, $value, $parameters)
     {
         $this->requireParameterCount(1, $parameters, 'unique');
-        
-        
+
+
         list($connection, $table) = $this->parseTable($parameters[0]);
         // The second parameter position holds the name of the column that needs to
         // be verified as unique. If this parameter isn't specified we will just
@@ -138,20 +139,20 @@ class ValidatorExtensionProvider extends ServiceProvider
                 $id = null;
             }
         }
-        
+
         // The presence verifier is responsible for counting rows within this store
         // mechanism which might be a relational database or any other permanent
         // data store like Redis, etc. We will use it to determine uniqueness.
         $verifier = $this->validator->getPresenceVerifier();
         $verifier->setConnection($connection);
-        
+
         // TODO: support extra conditions (that's the [] on the next line)
         // $extra = $this->getUniqueExtra($parameters);
         return $verifier->getCount(
             $table, $column, $value, $id, $idColumn, []
         ) == 0;
     }
-    
+
     protected function parseTable($table)
     {
         return Str::contains($table, '.') ? explode('.', $table, 2) : [null, $table];
