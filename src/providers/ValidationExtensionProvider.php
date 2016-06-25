@@ -148,6 +148,26 @@ class ValidatorExtensionProvider extends ServiceProvider
         }
         return true;
     }
+
+    protected function validateRequiredAllowEmpty($attribute, $value, $parameters = [])
+    {
+        // TODO: allow to exclude the null case too? (why would you do that)
+        if (is_null($value)) {
+            return false;
+        } elseif (!in_array('whitespace', $parameters) && is_string($value) && trim($value) === '') {
+            return false;
+        } elseif (!in_array('string', $parameters) && is_string($value) && $value) {
+            return false;
+        } elseif (!in_array('countable', $parameters) && $value instanceof Countable && count($value) < 1) {
+            return false;
+        } elseif (!in_array('array', $parameters) && is_array($value) && count($value) < 1) {
+            return false;
+        } elseif (!in_array('file', $parameters) && $value instanceof File) {
+            return (string) $value->getPath() != '';
+        }
+        return true;
+    }
+
     protected function requireParameterCount($count, $parameters, $rule)
     {
         if (count($parameters) < $count) {
