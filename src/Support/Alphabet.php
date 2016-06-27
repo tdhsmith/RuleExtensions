@@ -7,14 +7,17 @@ class Alphabet {
 
     protected $ranges;
     protected $isolates;
-    protected $count;
+    protected $combined;
 
-    const UNIQUE_STRING_MODE = 3;
+    const PRESENT_CHARS_AS_KEYS  = 1;
+    const UNIQUE_CHARS_AS_STRING = 3;
 
     public function __construct($characters)
     {
         if (is_array($characters)) {
             $this->set($characters);
+        } else {
+            $this->reset();
         }
     }
 
@@ -22,7 +25,7 @@ class Alphabet {
     {
         $this->ranges   = [];
         $this->isolates = [];
-        $this->count    = 0;
+        $this->combined = [];
     }
 
     public function set(array $characters)
@@ -54,27 +57,46 @@ class Alphabet {
                 throw new InvalidArgumentException('Alphabet config must only contain strings, integers, and subarrays');
             }
         }
+        $this->generateCombined();
         // TODO: check for overlap / simplify etc
     }
 
-    // public function generateCount()
-    // {
-    //     $c = 0;
-    //     foreach($this->ranges) {
+    protected function generateCombined()
+    {
+        $this->combined = [];
+        foreach($this->ranges as $range) {
+            for ($i = $range[0]; $i <= $range[1]; $i++) {
+                if ($i > 255) {
+                    throw new InvalidArgumentException('Iterated beyond 255; range values must be ill-formed: [' . $range[0] . ',' . $range[1] . ']');
+                }
+                $this->combined[$i] = true;
+            }
+        }
+        foreach($this->isolates as $isolate) {
+            $this->combined[$isolate] = true;
+        }
+    }
 
-    //     }
-    // }
+    public function get()
+    {
+        return $this->ranges +  $this->isolates;
+    }
 
-    // protected function checkForOverlap()
-    // {
-    //     foreach ($this->ranges as $index => $range1) {
-    //         for ($i = $index+1; $i < count($this->ranges); $i++) {
-    //             $range2 = $this->ranges[$i];
-    //             if ($range2[0] > )
-    //         }
-    //     }
-    // }
+    public function hasWord($word)
+    {
+        return count($this->nonalphabetic($word)) === 0;
+    }
 
+    public function nonalphabetic($word)
+    {
+        $charIndex = count_chars($word, self::PRESENT_CHARS_AS_KEYS);
+        return array_diff_key($charIndex, $this->combined);
+    }
 
+    // Alias
+    public function hasString($str)
+    {
+        return $this->hasWord($str);
+    }
 
 }
