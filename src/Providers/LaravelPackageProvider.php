@@ -16,7 +16,6 @@ class LaravelPackageProvider extends ServiceProvider
     // TODO: This might be best in the resource files, but I kind of
     // like the curstom rules being self-contained too. Hrmm...
     static $requiredOrEmptyArrayMessage = "The :attribute field is required.";
-    static $carbonDateMessage           = "The :attribute field could not be parsed as a Carbon datetime.";
     const REQUIRED_XOR_FAILURE_MESSAGE = 'Exactly one of the :attribute or :values fields must be present.';
 
     // TODO: ok I'm not sure how I'm gonna handle this in the "provider" mode, but
@@ -35,9 +34,9 @@ class LaravelPackageProvider extends ServiceProvider
     public function boot()
     {
         // TODO: actually configure this, etc
-        $this->publishes([
-            __DIR__ . '/../../resources/messages.php' => base_path('resources/en/tdhsmith/validation.php')
-        ]);
+        // $this->publishes([
+        //     __DIR__ . '/../../resources/messages.php' => base_path('resources/en/tdhsmith/validation.php')
+        // ]);
 
         Validator::extendImplicit('required_or_empty_array', function ($attribute, $value, $parameters) {
             // Copied direct from Laravel foundation, with only the Countable case removed
@@ -58,7 +57,7 @@ class LaravelPackageProvider extends ServiceProvider
                 return false;
             }
             return true;
-        }, self::$carbonDateMessage);
+        });
 
         Validator::extendImplicit('required_xor', function ($attribute, $value, $parameters, $validator) {
             // To examine values of attributes other than the one this rule applied to
